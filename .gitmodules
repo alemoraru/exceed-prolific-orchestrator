@@ -1,0 +1,6 @@
+[submodule "exceed-prolific-backend"]
+	path = exceed-prolific-backend
+	url = git@github.com:alemoraru/exceed-prolific-backend.git
+[submodule "exceed-prolific-frontend"]
+	path = exceed-prolific-frontend
+	url = git@github.com:alemoraru/exceed-prolific-frontend.git
