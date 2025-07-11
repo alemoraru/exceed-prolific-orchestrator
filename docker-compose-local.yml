@@ -8,6 +8,8 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin
       POSTGRES_DB: prolific
+    ports:
+      - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
@@ -18,6 +20,8 @@ services:
     image: ollama/ollama:latest
     container_name: exceed-ollama
     restart: always
+    ports:
+      - "11434:11434"
     volumes:
       - ollama_data:/var/lib/ollama
     # Make sure to pull the model after the service is up and running
@@ -35,6 +39,8 @@ services:
       context:
         ./exceed-prolific-backend
     container_name: exceed-backend
+    ports:
+      - "8000:8000"
     env_file:
       - ./exceed-prolific-backend/.env
     depends_on:
@@ -50,32 +56,17 @@ services:
         ./exceed-prolific-frontend
     container_name: exceed-frontend
     restart: always
+    ports:
+      - "3000:3000"
     environment:
       - NEXT_PUBLIC_BACKEND_HOST=http://localhost:8000
     depends_on:
       - backend
-
-  # Nginx reverse proxy
-  nginx:
-    image: nginx:alpine
-    container_name: nginx-proxy
-    restart: always
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-    depends_on:
-      - frontend
-      - backend
-    networks:
-      - app-network
 
 networks:
   exceed-prolific-network:
     driver: bridge
 
 volumes:
-  db_data:
-    driver: local
-  ollama_data:
-    driver: local
+  db_data: { }
+  ollama_data: { }
