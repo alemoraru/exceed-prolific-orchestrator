@@ -11,6 +11,14 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
 
+  ollama:
+    image: ollama/ollama:latest
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/var/lib/ollama
+
   backend:
     build:
       context:
@@ -20,6 +28,7 @@ services:
     env_file:
       - ./exceed-prolific-backend/.env
     depends_on:
+      - ollama
       - db
 
   frontend:
