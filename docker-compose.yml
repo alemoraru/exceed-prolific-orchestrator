@@ -18,6 +18,14 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/var/lib/ollama
+    # Make sure to pull the model after the service is up and running
+    command: >
+      sh -c "ollama serve && until curl -s http://localhost:11434/health; do sleep 1; done && ollama pull llama3.1:8b && tail -f /dev/null"
+    healthcheck:
+      test: [ "CMD", "curl", "-sf", "http://localhost:11434/api/tags | grep -q 'llama3.1:8b'" ]
+      interval: 30s
+      timeout: 5s
+      retries: 10
 
   backend:
     build:
@@ -28,8 +36,10 @@ services:
     env_file:
       - ./exceed-prolific-backend/.env
     depends_on:
-      - ollama
-      - db
+      ollama:
+        condition: service_healthy
+      db:
+        condition: service_healthy
 
   frontend:
     build:
@@ -44,3 +54,4 @@ services:
 
 volumes:
   db_data: { }
+  ollama_data: { }
