@@ -7,6 +7,7 @@ manage all services. It includes:
 - **Backend**: FastAPI app ([exceed-prolific-backend](https://github.com/alemoraru/exceed-prolific-backend))
 - **Database**: PostgreSQL
 - **LLM Service**: Ollama (for running LLMs locally/server)
+- **Nginx**: for setting up a reverse-proxy (for server deployment)
 
 ## Architecture
 
@@ -36,11 +37,18 @@ manage all services. It includes:
    ```
 
 2. **Start all services:**
-   ```sh
-   docker compose up -d
-   ```
 
-**Note**: This will start the frontend, backend, database, and Ollama services in detached mode.
+    * If you want to deploy the full stack application on your local machine, then run:
+      ```sh
+      docker compose up -d -f docker-compose-local.yml
+      ```
+    * If you want to deploy the full stack application on a remote webserver, then run:
+      ```shell
+      docker compose up -d -f docker-compose.yml
+      ```
+
+**Note**: In either case (local vs. remote), this will start the frontend, backend, database, and Ollama services in
+detached mode (i.e., running containers in the background).
 
 ## Development
 
