@@ -1,0 +1,72 @@
+services:
+  # DB Service
+  db:
+    image: postgres:16
+    container_name: exceed-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: prolific
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - exceed-prolific-network
+
+  # LLM Service
+  ollama:
+    image: ollama/ollama:latest
+    container_name: exceed-ollama
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/var/lib/ollama
+    # Make sure to pull the model after the service is up and running
+    command: >
+      sh -c "ollama serve && until curl -s http://localhost:11434/health; do sleep 1; done && ollama pull llama3.1:8b && tail -f /dev/null"
+    healthcheck:
+      test: [ "CMD", "curl", "-sf", "http://localhost:11434/api/tags | grep -q 'llama3.1:8b'" ]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+
+  # FastAPI Backend Service
+  backend:
+    build:
+      context:
+        ./exceed-prolific-backend
+    container_name: exceed-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./exceed-prolific-backend/.env
+    depends_on:
+      ollama:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+
+  # NextJS Frontend Service
+  frontend:
+    build:
+      context:
+        ./exceed-prolific-frontend
+    container_name: exceed-frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_BACKEND_HOST=http://localhost:8000
+    depends_on:
+      - backend
+
+networks:
+  exceed-prolific-network:
+    driver: bridge
+
+volumes:
+  db_data: { }
+  ollama_data: { }
