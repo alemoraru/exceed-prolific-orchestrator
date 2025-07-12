@@ -39,6 +39,20 @@ manage all services. It includes:
    ```
 3. Access the frontend at [http://localhost:3000](http://localhost:3000).
 
+## Development
+
+- Frontend code: `exceed-prolific-frontend/`
+- Backend code: `exceed-prolific-backend/`
+- To make changes, edit the respective code and rebuild the containers. This should only be done in development mode
+  for quick changes. If you want to properly make changes, then the recommended way is to actually commit those changes
+  in the respective repositories and then pull them in here.
+
+If you want to pull in the latest changes from the frontend or backend repositories, you can do so by running:
+
+```sh
+git submodule update --remote --merge
+```
+
 ## Service Details
 
 - **Database**: Accessible only within the Docker network as `db:5432`.
