@@ -28,6 +28,12 @@ services:
       - ollama_data:/var/lib/ollama
       - ./ollama/entrypoint.sh:/entrypoints/entrypoint.sh:ro
     entrypoint: [ "/bin/sh", "/entrypoints/entrypoint.sh" ]
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "ollama list | grep -q 'llama3.1:8b'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   # FastAPI Backend Service
   backend:
@@ -43,7 +49,7 @@ services:
       ollama:
         condition: service_healthy
       db:
-        condition: service_healthy
+        condition: service_started
 
   # NextJS Frontend Service
   frontend:
