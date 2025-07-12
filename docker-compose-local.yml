@@ -17,21 +17,17 @@ services:
 
   # LLM Service
   ollama:
-    image: ollama/ollama:latest
+    build:
+      context: ./ollama
+      dockerfile: Dockerfile
     container_name: exceed-ollama
     restart: always
     ports:
       - "11434:11434"
     volumes:
       - ollama_data:/var/lib/ollama
-    # Make sure to pull the model after the service is up and running
-    command: >
-      sh -c "ollama serve && until curl -s http://localhost:11434/health; do sleep 1; done && ollama pull llama3.1:8b && tail -f /dev/null"
-    healthcheck:
-      test: [ "CMD", "curl", "-sf", "http://localhost:11434/api/tags | grep -q 'llama3.1:8b'" ]
-      interval: 30s
-      timeout: 5s
-      retries: 10
+      - ./ollama/entrypoint.sh:/entrypoints/entrypoint.sh:ro
+    entrypoint: [ "/bin/sh", "/entrypoints/entrypoint.sh" ]
 
   # FastAPI Backend Service
   backend:
