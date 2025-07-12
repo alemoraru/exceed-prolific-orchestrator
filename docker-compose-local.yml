@@ -34,6 +34,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+    networks:
+      - exceed-prolific-network
 
   # FastAPI Backend Service
   backend:
@@ -43,19 +45,24 @@ services:
     container_name: exceed-backend
     ports:
       - "8000:8000"
-    env_file:
-      - ./exceed-prolific-backend/.env
+    environment:
+      - DATABASE_URL=postgresql://admin:admin@db:5432/prolific
+      - OLLAMA_URL=http://ollama:11434
+      - PROLIFIC_FRONTEND_URL=http://localhost:3000
     depends_on:
       ollama:
         condition: service_healthy
       db:
         condition: service_started
+    networks:
+      - exceed-prolific-network
 
   # NextJS Frontend Service
   frontend:
     build:
-      context:
-        ./exceed-prolific-frontend
+      context: ./exceed-prolific-frontend
+      args:
+        NEXT_PUBLIC_BACKEND_HOST: http://localhost:8000
     container_name: exceed-frontend
     restart: always
     ports:
@@ -64,6 +71,8 @@ services:
       - NEXT_PUBLIC_BACKEND_HOST=http://localhost:8000
     depends_on:
       - backend
+    networks:
+      - exceed-prolific-network
 
 networks:
   exceed-prolific-network:
