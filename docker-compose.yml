@@ -28,12 +28,14 @@ services:
       - ollama_data:/var/lib/ollama
       - ./ollama/entrypoint.sh:/entrypoints/entrypoint.sh:ro
     entrypoint: [ "/bin/sh", "/entrypoints/entrypoint.sh" ]
+    environment:
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1:8b}
     healthcheck:
-      test: [ "CMD", "sh", "-c", "ollama list | grep -q 'llama3.1:8b'" ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
+      test: [ "CMD", "sh", "-c", "ollama list | grep -q '${OLLAMA_MODEL:-llama3.1:8b}'" ]
+      interval: 15s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
     networks:
       - exceed-prolific-network
 
