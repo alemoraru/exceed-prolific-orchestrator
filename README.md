@@ -1,55 +1,99 @@
 # EXCEED Prolific Orchestrator
 
-This repository orchestrates a full-stack application for code evaluation and survey collection, using Docker Compose to
-manage all services. It includes:
+A full-stack, containerized platform for code evaluation and survey collection to be launched on Prolific, orchestrated
+with Docker Compose.
 
-- **Frontend**: Next.js app ([exceed-prolific-frontend](https://github.com/alemoraru/exceed-prolific-frontend))
-- **Backend**: FastAPI app ([exceed-prolific-backend](https://github.com/alemoraru/exceed-prolific-backend))
-- **Database**: PostgreSQL
-- **LLM Service**: Ollama (for running LLMs locally/server)
-- **Nginx**: for setting up a reverse-proxy (for server deployment)
+---
 
-## Architecture
+## 🧩 Stack Overview
 
+- **Frontend**: [Next.js](https://nextjs.org/) (implemented within
+  [exceed-prolific-frontend](https://github.com/alemoraru/exceed-prolific-frontend))
+- **Backend**: [FastAPI](https://fastapi.tiangolo.com/) (implemented
+  within [exceed-prolific-backend](https://github.com/alemoraru/exceed-prolific-backend))
+- **Database:** [PostgreSQL](https://www.postgresql.org/)
+- **LLM Service:** [Ollama](https://ollama.com/) (local LLM inference)
+- **Reverse Proxy:** [Nginx](https://nginx.org/)
+
+---
+
+## 🏗️ Architecture
+
+```mermaid
+flowchart LR
+    User((User / Participant))
+    Nginx[Nginx Reverse Proxy]
+    Frontend[Next.js Frontend]
+    Backend[FastAPI Backend]
+    DB[(PostgreSQL)]
+    Ollama[Ollama LLM]
+    User <--> Nginx
+    Nginx <--> Frontend
+    Nginx <--> Backend
+    Backend <--> DB
+    Backend <--> Ollama
 ```
-[User] ⇄ [Nginx (Reverse Proxy)] ⇄ [Frontend (Next.js)] ⇄ [Backend (FastAPI)] ⇄ [Postgres]
-                                                                ⇂
-                                                             [Ollama]
-```
 
-- Only the frontend (via nginx) is exposed externally (port 80).
-- The `backend`, `db`, and `ollama` services are isolated within the Docker network (no external inbound ports exposed
-  except for development convenience).
-- The backend connects to the database using the internal hostname `db` and to Ollama using the internal hostname
-  `ollama` - this is intentional to ensure that the backend can communicate with these services without exposing them
-  externally.
-- The frontend connects to the backend via nginx using the `/api` path (e.g., `/api/participants/consent`).
-- Nginx proxies `/api` requests to the backend and all other requests to the frontend.
-- Nginx caches static assets for improved performance.
+- **Port 80**: Only Nginx is exposed externally.
+- **Internal Networking**: Backend, DB, and Ollama are only accessible within the Docker network.
+- **API Routing**: Frontend calls `/api/...` -> Nginx proxies to backend.
+- **Static Assets**: Nginx caches static files for performance.
 
-## Prerequisites
+---
+
+## ⚡ Quickstart
+
+1. **Clone the repository:**
+   ```sh
+   git clone https://github.com/alemoraru/exceed-prolific-orchestrator.git
+   cd exceed-prolific-orchestrator
+   ```
+2. **Build and start all services:**
+   ```sh
+   docker compose up --build
+   ```
+3. **Open your browser:**
+   [http://localhost](http://localhost)
+
+---
+
+## ⚙️ Environment Variables
+
+| Service  | Variable                   | Value / Description                                |
+|----------|----------------------------|----------------------------------------------------|
+| Frontend | `NEXT_PUBLIC_BACKEND_HOST` | *(empty)* — API calls resolve to `/api/...`        |
+| Backend  | `CORS_ORIGINS`             | `http://localhost` — allows frontend via nginx     |
+| Backend  | `PROLIFIC_FRONTEND_URL`    | `http://frontend:3000` — frontend URL for Prolific |
+| Backend  | `DATABASE_URL`             | `postgresql://admin:admin@db:5432/prolific`        |
+| Backend  | `OLLAMA_URL`               | `http://ollama:11434`                              |
+
+---
+
+## 📝 Notes
+
+- **CORS:** To allow other origins, update `CORS_ORIGINS` in the backend service in `docker-compose.yml`.
+- **Timeouts:** Nginx increases `/api` timeouts to 5 minutes for long-running backend endpoints.
+- **Direct Access:** For development, backend and frontend containers are also available on their respective ports.
+- **Static Caching:** Nginx caches static assets for 1 year by default.
+
+---
+
+## 🛠️ Prerequisites
 
 - [Docker](https://www.docker.com/)
 - [Docker Compose](https://docs.docker.com/compose/)
 
-## Running Both on Local and Server Setup
+---
 
-1. Clone the repository.
-2. Build and start all services:
-   ```sh
-   docker compose up --build
-   ```
-3. Access the application at [http://localhost](http://localhost)
+## 🤝 Contributing
 
-## Environment Variables
+This project was developed as part of the EXCEED MSc Thesis project
+at [Technische Universiteit Delft](https://www.tudelft.nl/en/). As such, contributions of any sort will not be accepted.
+This repository is provided for replication and educational purposes ONLY. Since it was used to orchestrate the
+deployment of our study on Prolific, it is NOT intended for further development or contributions.
 
-- **Frontend**: Uses `NEXT_PUBLIC_BACKEND_HOST` (set to empty) so API calls resolve to `/api/...` and are routed by
-  nginx.
-- **Backend**: Uses `CORS_ORIGINS` (set to `http://localhost`) to allow requests from the frontend via nginx.
+---
 
-## Notes
+## 📄 License
 
-- If you need to change the allowed CORS origins, update the `CORS_ORIGINS` environment variable in the backend service
-  in `docker-compose.yml`.
-- If your backend endpoints are long-running, nginx timeouts for `/api` are increased to 5 minutes by default.
-- For development, you can still access backend and frontend containers directly on their respective ports if needed.
+[MIT](LICENSE)
