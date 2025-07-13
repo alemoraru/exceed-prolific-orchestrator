@@ -65,9 +65,10 @@ flowchart LR
 | Service  | Variable                   | Value / Description                                                                 |
 |----------|----------------------------|-------------------------------------------------------------------------------------|
 | Frontend | `NEXT_PUBLIC_BACKEND_HOST` | *(empty)* — API calls resolve to `/api/...`                                         |
-| Backend  | `PROLIFIC_FRONTEND_URL`    | `http://frontend:3000` — frontend URL for Prolific                                  |
+| Backend  | `FRONTEND_URL`             | `http://frontend:3000` — frontend URL for the Prolific webapp                       |
 | Backend  | `DATABASE_URL`             | `postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin}@db:5432/prolific` |
 | Backend  | `OLLAMA_URL`               | `http://ollama:11434`                                                               |
+| Backend  | `OLLAMA_MODEL`             | Model to use for LLM inference (default: `llama3.1:8b`)                             |
 | DB       | `POSTGRES_USER`            | Database username (default: `admin`)                                                |
 | DB       | `POSTGRES_PASSWORD`        | Database password (default: `admin`)                                                |
 | Ollama   | `OLLAMA_MODEL`             | Model to download and serve (required, see below)                                   |
