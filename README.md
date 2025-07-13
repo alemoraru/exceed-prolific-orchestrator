@@ -55,23 +55,67 @@ flowchart LR
 3. **Open your browser:**
    [http://localhost](http://localhost)
 
+> Note: Without any explicit environment variables, the backend will use default credentials (`admin`/`admin`)
+> and the database will be named `prolific`. The Ollama service will use the default model `llama3.1:8b`.
+
 ---
 
 ## ⚙️ Environment Variables
 
-| Service  | Variable                   | Value / Description                                |
-|----------|----------------------------|----------------------------------------------------|
-| Frontend | `NEXT_PUBLIC_BACKEND_HOST` | *(empty)* — API calls resolve to `/api/...`        |
-| Backend  | `CORS_ORIGINS`             | `http://localhost` — allows frontend via nginx     |
-| Backend  | `PROLIFIC_FRONTEND_URL`    | `http://frontend:3000` — frontend URL for Prolific |
-| Backend  | `DATABASE_URL`             | `postgresql://admin:admin@db:5432/prolific`        |
-| Backend  | `OLLAMA_URL`               | `http://ollama:11434`                              |
+| Service  | Variable                   | Value / Description                                                                 |
+|----------|----------------------------|-------------------------------------------------------------------------------------|
+| Frontend | `NEXT_PUBLIC_BACKEND_HOST` | *(empty)* — API calls resolve to `/api/...`                                         |
+| Backend  | `PROLIFIC_FRONTEND_URL`    | `http://frontend:3000` — frontend URL for Prolific                                  |
+| Backend  | `DATABASE_URL`             | `postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin}@db:5432/prolific` |
+| Backend  | `OLLAMA_URL`               | `http://ollama:11434`                                                               |
+| DB       | `POSTGRES_USER`            | Database username (default: `admin`)                                                |
+| DB       | `POSTGRES_PASSWORD`        | Database password (default: `admin`)                                                |
+| Ollama   | `OLLAMA_MODEL`             | Model to download and serve (required, see below)                                   |
+
+---
+
+## 🧪 Example Usage
+
+### Running with Default Database and LLM Model
+
+```sh
+docker compose up --build
+```
+
+This will use the default Postgres credentials (`admin`/`admin`), database (`prolific`), and the default LLM model (
+`llama3.1:8b`).
+
+### Overriding Database Credentials and LLM Model
+
+```sh
+export POSTGRES_USER=myuser 
+export POSTGRES_PASSWORD=mypass
+export OLLAMA_MODEL=codellama:7b
+docker compose up --build
+```
+
+### Allowed LLM Models
+
+The following models are allowed for `OLLAMA_MODEL`:
+
+- `llama3.2:3b`
+- `llama3.1:8b`
+- `codellama:7b`
+- `codellama:13b`
+- `mistral:7b`
+- `codestral:22b`
+- `deepseek-r1:14b`
+- `qwen3:14b`
+- `qwen2.5-coder:3b`
+- `qwen2.5-coder:7b`
+- `qwen2.5-coder:14b`
+
+If you set `OLLAMA_MODEL` to a value not in this list, the Ollama container will exit with an error.
 
 ---
 
 ## 📝 Notes
 
-- **CORS:** To allow other origins, update `CORS_ORIGINS` in the backend service in `docker-compose.yml`.
 - **Timeouts:** Nginx increases `/api` timeouts to 5 minutes for long-running backend endpoints.
 - **Direct Access:** For development, backend and frontend containers are also available on their respective ports.
 - **Static Caching:** Nginx caches static assets for 1 year by default.
