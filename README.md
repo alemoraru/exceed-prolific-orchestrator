@@ -135,13 +135,13 @@ For that to work, there should be enough disk and memory available on the machin
 
 ## 🤝 Contributing
 
-This project was developed as part of the EXCEED MSc Thesis project
-at [Technische Universiteit Delft](https://www.tudelft.nl/en/). As such, contributions of any sort will not be accepted.
-This repository is provided for replication and educational purposes ONLY. Since it was used to orchestrate the
-deployment of our study on Prolific, it is NOT intended for further development or contributions.
+This project was developed as part of the EXCEED MSc Thesis project at Technische Universiteit Delft. As such,
+contributions of any sort will not be accepted. This repository is provided for replication and educational purposes
+ONLY. Since it was used to orchestrate the deployment of our study on Prolific, it is NOT intended for further
+development or contributions.
 
 ---
 
 ## 📄 License
 
-[MIT](LICENSE)
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
