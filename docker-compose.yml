@@ -29,9 +29,9 @@ services:
       - ./ollama/entrypoint.sh:/entrypoints/entrypoint.sh:ro
     entrypoint: [ "/bin/sh", "/entrypoints/entrypoint.sh" ]
     environment:
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-deepseek-coder:6.7b}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1:8b}
     healthcheck:
-      test: [ "CMD", "sh", "-c", "ollama list | grep -q '${OLLAMA_MODEL:-deepseek-coder:6.7b}'" ]
+      test: [ "CMD", "sh", "-c", "ollama list | grep -q '${OLLAMA_MODEL:-llama3.1:8b}'" ]
       interval: 15s
       timeout: 10s
       retries: 15
@@ -50,7 +50,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin}@db:5432/prolific
       - OLLAMA_URL=http://ollama:11434
-      - OLLAMA_MODEL=${OLLAMA_MODEL:-deepseek-coder:6.7b}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.1:8b}
       - FRONTEND_URL=http://frontend:3000
     depends_on:
       ollama:
