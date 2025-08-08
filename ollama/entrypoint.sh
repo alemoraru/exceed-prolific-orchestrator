@@ -13,7 +13,8 @@ ALLOWED_MODELS="\
   qwen2.5-coder:3b \
   qwen2.5-coder:7b \
   qwen2.5-coder:14b\
-  deepseek-coder:6.7b
+  deepseek-coder:6.7b \
+  granite3.3:8b
 "
 
 # Require OLLAMA_MODEL env variable

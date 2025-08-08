@@ -56,7 +56,7 @@ flowchart LR
    [http://localhost](http://localhost)
 
 > Note: Without any explicit environment variables, the backend will use default credentials (`admin`/`admin`)
-> and the database will be named `prolific`. The Ollama service will use the default model `deepseek-coder:6.7b`.
+> and the database will be named `prolific`. The Ollama service will use the default model `llama3.1:8b`.
 
 ---
 
@@ -68,7 +68,7 @@ flowchart LR
 | Backend  | `FRONTEND_URL`             | `http://frontend:3000` — frontend URL for the Prolific webapp                       |
 | Backend  | `DATABASE_URL`             | `postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin}@db:5432/prolific` |
 | Backend  | `OLLAMA_URL`               | `http://ollama:11434`                                                               |
-| Backend  | `OLLAMA_MODEL`             | Model to use for LLM inference (default: `deepseek-coder:6.7b`)                     |
+| Backend  | `OLLAMA_MODEL`             | Model to use for LLM inference (default: `llama3.1:8b`)                             |
 | DB       | `POSTGRES_USER`            | Database username (default: `admin`)                                                |
 | DB       | `POSTGRES_PASSWORD`        | Database password (default: `admin`)                                                |
 | Ollama   | `OLLAMA_MODEL`             | Model to download and serve (required, see below)                                   |
@@ -111,6 +111,7 @@ The following models are allowed for `OLLAMA_MODEL`:
 - `qwen2.5-coder:7b`
 - `qwen2.5-coder:14b`
 - `deepseek-coder:6.7b`
+- `granite3.3:8b`
 
 If you set `OLLAMA_MODEL` to a value not in this list, the Ollama container will exit with an error.
 Note that the model you have selected will be downloaded automatically by the Ollama container on startup.
