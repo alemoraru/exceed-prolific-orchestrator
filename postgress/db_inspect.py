@@ -4,6 +4,8 @@ import sys
 import argparse
 import psycopg2
 import psycopg2.extras
+import csv
+from datetime import datetime
 from statistics import median
 
 # Default database URL, can be overridden by the DATABASE_URL environment variable
@@ -13,6 +15,12 @@ DEFAULT_URL = os.getenv(
 
 # Sections of the database to inspect
 SECTIONS = ["participants", "submissions", "feedback", "events", "all"]
+
+# Tables that can be cleared
+CLEARABLE_TABLES = ["participants", "code_submissions", "feedback", "events"]
+
+# Tables that can be exported
+EXPORTABLE_TABLES = ["participants", "code_submissions", "feedback", "events"]
 
 
 def q(cur, sql, params=None):
@@ -333,6 +341,115 @@ def events_section(cur):
     print_table("Top 50 participants by event count", rows, hdr)
 
 
+def clear_table(cur, table_name):
+    """Clear all data from a specified table with confirmation."""
+    if table_name not in CLEARABLE_TABLES:
+        print(f"Error: Table '{table_name}' is not in the list of clearable tables.")
+        print(f"Clearable tables: {', '.join(CLEARABLE_TABLES)}")
+        return False
+    
+    # Get row count before clearing
+    rows, _ = q(cur, f"SELECT COUNT(*) FROM {table_name};")
+    row_count = rows[0][0] if rows else 0
+    
+    if row_count == 0:
+        print(f"Table '{table_name}' is already empty.")
+        return True
+    
+    print(f"WARNING: This will delete ALL {row_count} rows from table '{table_name}'.")
+    confirmation = input("Type 'YES' to confirm deletion: ")
+    
+    if confirmation != 'YES':
+        print("Operation cancelled.")
+        return False
+    
+    try:
+        cur.execute(f"DELETE FROM {table_name};")
+        print(f"Successfully cleared {row_count} rows from table '{table_name}'.")
+        return True
+    except Exception as e:
+        print(f"Error clearing table '{table_name}': {e}")
+        return False
+
+
+def export_table(cur, table_name, output_dir=None):
+    """Export all data from a specified table to CSV."""
+    if table_name not in EXPORTABLE_TABLES:
+        print(f"Error: Table '{table_name}' is not in the list of exportable tables.")
+        print(f"Exportable tables: {', '.join(EXPORTABLE_TABLES)}")
+        return False
+    
+    # Create output directory if specified
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+        output_path = os.path.join(output_dir, f"{table_name}.csv")
+    else:
+        output_path = f"{table_name}.csv"
+    
+    try:
+        # Get all data from the table
+        rows, headers = q(cur, f"SELECT * FROM {table_name};")
+        
+        if not rows:
+            print(f"Table '{table_name}' is empty. No data to export.")
+            return True
+        
+        # Write to CSV
+        with open(output_path, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            
+            # Write headers
+            writer.writerow(headers)
+            
+            # Write data rows
+            for row in rows:
+                # Convert any non-string values to strings for CSV compatibility
+                csv_row = []
+                for value in row:
+                    if value is None:
+                        csv_row.append('')
+                    elif isinstance(value, datetime):
+                        csv_row.append(value.isoformat())
+                    else:
+                        csv_row.append(str(value))
+                writer.writerow(csv_row)
+        
+        print(f"Successfully exported {len(rows)} rows from table '{table_name}' to '{output_path}'.")
+        return True
+        
+    except Exception as e:
+        print(f"Error exporting table '{table_name}': {e}")
+        return False
+
+
+def export_all_tables(cur, output_dir=None):
+    """Export all exportable tables to CSV files."""
+    if output_dir is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_dir = f"db_export_{timestamp}"
+    
+    os.makedirs(output_dir, exist_ok=True)
+    
+    success_count = 0
+    total_rows = 0
+    
+    for table_name in EXPORTABLE_TABLES:
+        print(f"\nExporting table: {table_name}")
+        if export_table(cur, table_name, output_dir):
+            success_count += 1
+            # Count rows for summary
+            rows, _ = q(cur, f"SELECT COUNT(*) FROM {table_name};")
+            table_rows = rows[0][0] if rows else 0
+            total_rows += table_rows
+    
+    print(f"\n=== Export Summary ===")
+    print(f"Successfully exported {success_count}/{len(EXPORTABLE_TABLES)} tables")
+    print(f"Total rows exported: {total_rows}")
+    print(f"Output directory: {os.path.abspath(output_dir)}")
+    
+    return success_count == len(EXPORTABLE_TABLES)
+
+
 def main():
     """Main function to parse arguments and run the inspection."""
     parser = argparse.ArgumentParser(
@@ -348,6 +465,25 @@ def main():
     parser.add_argument(
         "--section", choices=SECTIONS, default="all", help="Which section to run"
     )
+    parser.add_argument(
+        "--clear-table", 
+        choices=CLEARABLE_TABLES, 
+        help=f"Clear all data from specified table. Options: {', '.join(CLEARABLE_TABLES)}"
+    )
+    parser.add_argument(
+        "--export-table", 
+        choices=EXPORTABLE_TABLES, 
+        help=f"Export specified table to CSV. Options: {', '.join(EXPORTABLE_TABLES)}"
+    )
+    parser.add_argument(
+        "--export-all", 
+        action="store_true",
+        help="Export all tables to CSV files"
+    )
+    parser.add_argument(
+        "--output-dir", 
+        help="Output directory for exports (default: current directory for single table, timestamped folder for all tables)"
+    )
     args = parser.parse_args()
 
     try:
@@ -359,6 +495,24 @@ def main():
         sys.exit(1)
 
     with conn, conn.cursor() as cur:
+        # Handle table clearing first
+        if args.clear_table:
+            success = clear_table(cur, args.clear_table)
+            if success:
+                conn.commit()
+            return
+        
+        # Handle table export
+        if args.export_table:
+            export_table(cur, args.export_table, args.output_dir)
+            return
+        
+        # Handle export all tables
+        if args.export_all:
+            export_all_tables(cur, args.output_dir)
+            return
+        
+        # Normal inspection sections
         if args.section in ("participants", "all"):
             participants_section(cur)
         if args.section in ("submissions", "all"):
