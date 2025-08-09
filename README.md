@@ -71,7 +71,6 @@ flowchart LR
 | Backend  | `OLLAMA_MODEL`             | Model to use for LLM inference (default: `llama3.1:8b`)                             |
 | DB       | `POSTGRES_USER`            | Database username (default: `admin`)                                                |
 | DB       | `POSTGRES_PASSWORD`        | Database password (default: `admin`)                                                |
-| Ollama   | `OLLAMA_MODEL`             | Model to download and serve (required, see below)                                   |
 
 ---
 
