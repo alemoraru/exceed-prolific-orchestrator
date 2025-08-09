@@ -118,6 +118,37 @@ For that to work, there should be enough disk and memory available on the machin
 
 ---
 
+## 📦 Monitoring Docker Postgres Database
+
+We made it possible to monitor the contents of the Postgres database using the script within the
+`postgres/db_inspect.py` file. To use this, you need to follow these steps:
+
+1. **Create a Python virtual environment (in root directory):**
+   ```sh
+   python -m venv venv
+   source venv/bin/activate
+   ```
+2. **Install the required dependencies:**
+   ```sh
+   pip install -r postgres/requirements.txt
+   ```
+3. **Run the inspection script:**
+   You can now run the script to inspect the database. The next command will run all the queries in the script.
+   ```sh
+   ./postgres/db_inspect.py
+    ```
+   If you want to run only queries for the `participants` table, you can use the `--section` argument:
+    ```sh
+    ./postgres/db_inspect.py --section participants
+    ```
+   Similarly, you can do the same thing for the other tables: `submissions`, `feedback`, and `events`.
+4. **(Optional) If you used a different database user or password, you can explicitly pass the connection string:**
+   ```sh
+   ./postgres/db_inspect.py --db "postgresql://myuser:mypass@localhost:5432/prolific"
+   ```
+
+---
+
 ## 📝 Notes
 
 - **Timeouts:** Nginx increases `/api` timeouts to 5 minutes for long-running backend endpoints.
