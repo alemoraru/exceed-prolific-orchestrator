@@ -526,6 +526,122 @@ def remove_participant_data(cur, prolific_id):
         return False
 
 
+def remove_multiple_participants(cur, file_path):
+    """Remove data for multiple prolific IDs listed in a text file."""
+    if not os.path.exists(file_path):
+        print(f"Error: File '{file_path}' does not exist.")
+        return False
+    
+    # Read prolific IDs from file
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            prolific_ids = [line.strip() for line in f if line.strip()]
+    except Exception as e:
+        print(f"Error reading file '{file_path}': {e}")
+        return False
+    
+    if not prolific_ids:
+        print(f"No prolific IDs found in file '{file_path}'")
+        return False
+    
+    print(f"Found {len(prolific_ids)} prolific IDs in file '{file_path}':")
+    for i, pid in enumerate(prolific_ids, 1):
+        print(f"  {i}. {pid}")
+    
+    # Check which participants exist and count total data
+    existing_participants = []
+    total_data_summary = {"participants": 0, "code_submissions": 0, "feedback": 0, "events": 0}
+    
+    print(f"\nScanning database for these participants...")
+    for prolific_id in prolific_ids:
+        rows, _ = q(cur, "SELECT participant_id FROM participants WHERE participant_id = %s;", (prolific_id,))
+        if rows:
+            existing_participants.append(prolific_id)
+            print(f"✓ Found: {prolific_id}")
+            
+            # Count data for each table
+            for table_name in ["participants", "code_submissions", "feedback", "events"]:
+                rows, _ = q(cur, f"SELECT COUNT(*) FROM {table_name} WHERE participant_id = %s;", (prolific_id,))
+                count = rows[0][0] if rows else 0
+                total_data_summary[table_name] += count
+        else:
+            print(f"✗ Not found: {prolific_id}")
+    
+    if not existing_participants:
+        print("No participants found in database. Nothing to delete.")
+        return True
+    
+    # Show summary
+    print(f"\n=== Deletion Summary ===")
+    print(f"Participants to delete: {len(existing_participants)}")
+    print(f"Total data to delete:")
+    total_rows = 0
+    for table_name, count in total_data_summary.items():
+        if count > 0:
+            print(f"  - {table_name}: {count} rows")
+            total_rows += count
+    print(f"TOTAL ROWS TO DELETE: {total_rows}")
+    
+    if total_rows == 0:
+        print("No data to delete.")
+        return True
+    
+    # Final confirmation
+    print(f"\nWARNING: This will permanently delete ALL data for {len(existing_participants)} participants!")
+    print("Participants to be deleted:")
+    for pid in existing_participants:
+        print(f"  - {pid}")
+    
+    confirmation = input(f"\nType 'DELETE ALL {len(existing_participants)} PARTICIPANTS' to confirm: ")
+    expected_confirmation = f"DELETE ALL {len(existing_participants)} PARTICIPANTS"
+    
+    if confirmation != expected_confirmation:
+        print("Operation cancelled.")
+        return False
+    
+    # Perform batch deletion
+    print(f"\nStarting batch deletion...")
+    successful_deletions = 0
+    failed_deletions = 0
+    total_deleted_rows = 0
+    
+    for i, prolific_id in enumerate(existing_participants, 1):
+        print(f"\n[{i}/{len(existing_participants)}] Deleting data for: {prolific_id}")
+        
+        try:
+            # Delete in proper order for this participant
+            participant_deleted_rows = 0
+            deletion_order = [
+                ("events", "participant_id"),
+                ("feedback", "participant_id"),
+                ("code_submissions", "participant_id"),
+                ("participants", "participant_id")
+            ]
+            
+            for table_name, id_column in deletion_order:
+                cur.execute(f"DELETE FROM {table_name} WHERE {id_column} = %s;", (prolific_id,))
+                deleted_count = cur.rowcount
+                if deleted_count > 0:
+                    print(f"  Deleted {deleted_count} rows from {table_name}")
+                    participant_deleted_rows += deleted_count
+            
+            total_deleted_rows += participant_deleted_rows
+            successful_deletions += 1
+            print(f"  ✓ Successfully deleted {participant_deleted_rows} rows for {prolific_id}")
+            
+        except Exception as e:
+            print(f"  ✗ Error deleting {prolific_id}: {e}")
+            failed_deletions += 1
+    
+    # Final summary
+    print(f"\n=== Batch Deletion Complete ===")
+    print(f"Successful deletions: {successful_deletions}")
+    print(f"Failed deletions: {failed_deletions}")
+    print(f"Total rows deleted: {total_deleted_rows}")
+    
+    return failed_deletions == 0
+
+
 def main():
     """Main function to parse arguments and run the inspection."""
     parser = argparse.ArgumentParser(
@@ -564,6 +680,10 @@ def main():
         "--remove-participant",
         help="Remove all data for a specific prolific ID"
     )
+    parser.add_argument(
+        "--remove-participants-file",
+        help="Remove all data for multiple prolific IDs listed in a text file (one ID per line)"
+    )
     args = parser.parse_args()
 
     try:
@@ -575,9 +695,16 @@ def main():
         sys.exit(1)
 
     with conn, conn.cursor() as cur:
-        # Handle participant removal
+        # Handle participant removal (single)
         if args.remove_participant:
             success = remove_participant_data(cur, args.remove_participant)
+            if success:
+                conn.commit()
+            return
+        
+        # Handle participant removal (multiple from file)
+        if args.remove_participants_file:
+            success = remove_multiple_participants(cur, args.remove_participants_file)
             if success:
                 conn.commit()
             return
