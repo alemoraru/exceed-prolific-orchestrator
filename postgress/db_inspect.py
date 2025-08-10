@@ -450,6 +450,82 @@ def export_all_tables(cur, output_dir=None):
     return success_count == len(EXPORTABLE_TABLES)
 
 
+def remove_participant_data(cur, prolific_id):
+    """Remove all data for a specific prolific ID from all tables."""
+    if not prolific_id:
+        print("Error: No prolific ID provided.")
+        return False
+    
+    print(f"Searching for data associated with prolific ID: '{prolific_id}'")
+    
+    # First, check if the participant exists (prolific_id is stored as participant_id)
+    rows, _ = q(cur, "SELECT participant_id FROM participants WHERE participant_id = %s;", (prolific_id,))
+    
+    if not rows:
+        print(f"No participant found with prolific ID: '{prolific_id}'")
+        return True
+    
+    participant_id = rows[0][0]
+    print(f"Found participant with ID: {participant_id}")
+    
+    # Check data in each table
+    tables_to_check = [
+        ("code_submissions", "participant_id"),
+        ("feedback", "participant_id"), 
+        ("events", "participant_id"),
+        ("participants", "participant_id")
+    ]
+    
+    total_rows_to_delete = 0
+    deletion_plan = []
+    
+    for table_name, id_column in tables_to_check:
+        rows, _ = q(cur, f"SELECT COUNT(*) FROM {table_name} WHERE {id_column} = %s;", (participant_id,))
+        
+        row_count = rows[0][0] if rows else 0
+        if row_count > 0:
+            deletion_plan.append((table_name, id_column, row_count))
+            total_rows_to_delete += row_count
+            print(f"  - {table_name}: {row_count} rows")
+    
+    if total_rows_to_delete == 0:
+        print(f"No data found for prolific ID: '{prolific_id}'")
+        return True
+    
+    print(f"\nTotal rows to delete: {total_rows_to_delete}")
+    print(f"WARNING: This will permanently delete ALL data for prolific ID '{prolific_id}'")
+    confirmation = input("Type 'YES' to confirm deletion: ")
+    
+    if confirmation != 'YES':
+        print("Operation cancelled.")
+        return False
+    
+    # Perform deletions in proper order (foreign key constraints)
+    deletion_order = [
+        ("events", "participant_id"),
+        ("feedback", "participant_id"),
+        ("code_submissions", "participant_id"),
+        ("participants", "participant_id")
+    ]
+    
+    deleted_total = 0
+    try:
+        for table_name, id_column in deletion_order:
+            cur.execute(f"DELETE FROM {table_name} WHERE {id_column} = %s;", (participant_id,))
+            
+            deleted_count = cur.rowcount
+            if deleted_count > 0:
+                print(f"Deleted {deleted_count} rows from {table_name}")
+                deleted_total += deleted_count
+        
+        print(f"\nSuccessfully deleted {deleted_total} total rows for prolific ID '{prolific_id}'")
+        return True
+        
+    except Exception as e:
+        print(f"Error deleting data for prolific ID '{prolific_id}': {e}")
+        return False
+
+
 def main():
     """Main function to parse arguments and run the inspection."""
     parser = argparse.ArgumentParser(
@@ -484,6 +560,10 @@ def main():
         "--output-dir", 
         help="Output directory for exports (default: current directory for single table, timestamped folder for all tables)"
     )
+    parser.add_argument(
+        "--remove-participant",
+        help="Remove all data for a specific prolific ID"
+    )
     args = parser.parse_args()
 
     try:
@@ -495,7 +575,14 @@ def main():
         sys.exit(1)
 
     with conn, conn.cursor() as cur:
-        # Handle table clearing first
+        # Handle participant removal
+        if args.remove_participant:
+            success = remove_participant_data(cur, args.remove_participant)
+            if success:
+                conn.commit()
+            return
+        
+        # Handle table clearing
         if args.clear_table:
             success = clear_table(cur, args.clear_table)
             if success:
